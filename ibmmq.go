@@ -2,6 +2,7 @@ package ibmmq
 
 import (
 	"fmt"
+	"time"
 
 	"go.k6.io/k6/js/modules"
 )
@@ -17,9 +18,11 @@ func (IbmMQ) Connect() {
 }
 
 func (IbmMQ) Write() {
+	time.Sleep(100 * time.Millisecond)
 	fmt.Println("Write")
 }
 
 func (IbmMQ) Read() {
+	time.Sleep(100 * time.Millisecond)
 	fmt.Println("Read")
 }
