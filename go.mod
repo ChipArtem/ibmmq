@@ -1,4 +1,4 @@
-module github.com/ChipArtem/ibmq
+module github.com/ChipArtem/ibmmq
 
 go 1.18
 

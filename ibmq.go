@@ -1,7 +1,7 @@
-package ibmq
+package ibmmq
 
 import (
-	"log"
+	"fmt"
 
 	"go.k6.io/k6/js/modules"
 )
@@ -13,13 +13,13 @@ func init() {
 type IbmMQ struct{}
 
 func (IbmMQ) Connect() {
-	log.Println("New connect")
+	fmt.Println("New connect")
 }
 
 func (IbmMQ) Write() {
-	log.Println("Write")
+	fmt.Println("Write")
 }
 
 func (IbmMQ) Read() {
-	log.Println("Read")
+	fmt.Println("Read")
 }
