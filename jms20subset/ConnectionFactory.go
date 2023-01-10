@@ -23,7 +23,7 @@ type ConnectionFactory interface {
 	// but are not typically required. Most calls to this function pass zero arguments.
 	//
 	// Defaults to sessionMode of JMSContextAUTOACKNOWLEDGE
-	CreateContext(opts ...MQOptions) (JMSContext, JMSException)
+	CreateContext() (JMSContext, JMSException)
 
 	// CreateContextWithSessionMode creates a connection to the messaging provider using the
 	// configuration parameters that are encapsulated by this ConnectionFactory,
@@ -31,5 +31,5 @@ type ConnectionFactory interface {
 	//
 	// Optional MQOptions can be provided to configure the connection prior to initialisation
 	// but are not typically required. Most calls to this function pass zero arguments.
-	CreateContextWithSessionMode(sessionMode int, opts ...MQOptions) (JMSContext, JMSException)
+	CreateContextWithSessionMode(sessionMode int) (JMSContext, JMSException)
 }
