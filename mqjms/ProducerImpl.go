@@ -15,8 +15,8 @@ import (
 	"strconv"
 	"strings"
 
+	ibmmqv5 "github.com/ChipArtem/k6ibmmq/ibmmq"
 	"github.com/ChipArtem/k6ibmmq/jms20subset"
-	ibmmq "github.com/ibm-messaging/mq-golang/v5/ibmmq"
 )
 
 // ProducerImpl defines a struct that contains the necessary objects for
@@ -59,29 +59,29 @@ func (producer ProducerImpl) SendBytes(dest jms20subset.Destination, body []byte
 func (producer ProducerImpl) Send(dest jms20subset.Destination, msg jms20subset.Message) jms20subset.JMSException {
 
 	// Set up the basic objects we need to send the message.
-	mqod := ibmmq.NewMQOD()
-	putmqmd := ibmmq.NewMQMD()
-	pmo := ibmmq.NewMQPMO()
+	mqod := ibmmqv5.NewMQOD()
+	putmqmd := ibmmqv5.NewMQMD()
+	pmo := ibmmqv5.NewMQPMO()
 
 	var retErr jms20subset.JMSException
 
 	// Setup destination
-	mqod.ObjectType = ibmmq.MQOT_Q
+	mqod.ObjectType = ibmmqv5.MQOT_Q
 	mqod.ObjectName = dest.GetDestinationName()
 
 	// Calculate the syncpoint value
-	syncpointSetting := ibmmq.MQPMO_NO_SYNCPOINT
+	syncpointSetting := ibmmqv5.MQPMO_NO_SYNCPOINT
 	if producer.ctx.sessionMode == jms20subset.JMSContextSESSIONTRANSACTED {
-		syncpointSetting = ibmmq.MQPMO_SYNCPOINT
+		syncpointSetting = ibmmqv5.MQPMO_SYNCPOINT
 	}
 
 	// Configure the put message options, including asking MQ to allocate a
 	// unique message ID
-	pmo.Options = syncpointSetting | ibmmq.MQPMO_NEW_MSG_ID
+	pmo.Options = syncpointSetting | ibmmqv5.MQPMO_NEW_MSG_ID
 
 	// Is async put has been requested then apply the appropriate PMO option
 	if dest.GetPutAsyncAllowed() == jms20subset.Destination_PUT_ASYNC_ALLOWED_ENABLED {
-		pmo.Options |= ibmmq.MQPMO_ASYNC_RESPONSE
+		pmo.Options |= ibmmqv5.MQPMO_ASYNC_RESPONSE
 	}
 
 	var buffer []byte
@@ -105,8 +105,8 @@ func (producer ProducerImpl) Send(dest jms20subset.Destination, msg jms20subset.
 
 		// Set up this MQ message to contain the string from the JMS message.
 		trimmedFormat := strings.TrimSpace(putmqmd.Format)
-		if trimmedFormat == ibmmq.MQFMT_NONE {
-			putmqmd.Format = ibmmq.MQFMT_STRING
+		if trimmedFormat == ibmmqv5.MQFMT_NONE {
+			putmqmd.Format = ibmmqv5.MQFMT_STRING
 		}
 
 		msgStr := typedMsg.GetText()
@@ -140,9 +140,9 @@ func (producer ProducerImpl) Send(dest jms20subset.Destination, msg jms20subset.
 	// Convert the JMS persistence into the equivalent MQ message descriptor
 	// attribute.
 	if producer.deliveryMode == jms20subset.DeliveryMode_NON_PERSISTENT {
-		putmqmd.Persistence = ibmmq.MQPER_NOT_PERSISTENT
+		putmqmd.Persistence = ibmmqv5.MQPER_NOT_PERSISTENT
 	} else {
-		putmqmd.Persistence = ibmmq.MQPER_PERSISTENT
+		putmqmd.Persistence = ibmmqv5.MQPER_PERSISTENT
 	}
 
 	// If the producer has a TTL specified then apply it to the put MQMD so
@@ -167,7 +167,7 @@ func (producer ProducerImpl) Send(dest jms20subset.Destination, msg jms20subset.
 	// Note that if there is already an error returned from Put then just pass that back to
 	// the user (only go into this if err is nil).
 	if dest.GetPutAsyncAllowed() == jms20subset.Destination_PUT_ASYNC_ALLOWED_ENABLED &&
-		syncpointSetting == ibmmq.MQPMO_NO_SYNCPOINT &&
+		syncpointSetting == ibmmqv5.MQPMO_NO_SYNCPOINT &&
 		producer.ctx.sendCheckCount > 0 &&
 		err == nil {
 
@@ -188,8 +188,8 @@ func (producer ProducerImpl) Send(dest jms20subset.Destination, msg jms20subset.
 			*producer.ctx.sendCheckCountInc = producer.ctx.sendCheckCount
 
 			// Invoke the Stat call agains the queue manager to check for errors.
-			sts := ibmmq.NewMQSTS()
-			statErr := producer.ctx.qMgr.Stat(ibmmq.MQSTAT_TYPE_ASYNC_ERROR, sts)
+			sts := ibmmqv5.NewMQSTS()
+			statErr := producer.ctx.qMgr.Stat(ibmmqv5.MQSTAT_TYPE_ASYNC_ERROR, sts)
 
 			if statErr != nil {
 
@@ -223,8 +223,8 @@ func (producer ProducerImpl) Send(dest jms20subset.Destination, msg jms20subset.
 	// Note that if there is already an error returned from Put then just pass that back to
 	// the user (only go into this if err is nil).
 	if dest.GetPutAsyncAllowed() == jms20subset.Destination_PUT_ASYNC_ALLOWED_ENABLED &&
-		syncpointSetting == ibmmq.MQPMO_SYNCPOINT &&
-		putmqmd.Persistence == ibmmq.MQPER_PERSISTENT &&
+		syncpointSetting == ibmmqv5.MQPMO_SYNCPOINT &&
+		putmqmd.Persistence == ibmmqv5.MQPER_PERSISTENT &&
 		*producer.ctx.sendCheckCountInc != ContextImpl_TRANSACTED_ASYNCPUT_ACTIVE &&
 		err == nil {
 
@@ -236,9 +236,9 @@ func (producer ProducerImpl) Send(dest jms20subset.Destination, msg jms20subset.
 	// and putting the message.
 	if err != nil {
 
-		rcInt := int(err.(*ibmmq.MQReturn).MQRC)
+		rcInt := int(err.(*ibmmqv5.MQReturn).MQRC)
 		errCode := strconv.Itoa(rcInt)
-		reason := ibmmq.MQItoString("RC", rcInt)
+		reason := ibmmqv5.MQItoString("RC", rcInt)
 		retErr = jms20subset.CreateJMSException(reason, errCode, err)
 
 	}
@@ -249,11 +249,11 @@ func (producer ProducerImpl) Send(dest jms20subset.Destination, msg jms20subset.
 
 // populateAsyncPutError is a common function used in several places to generate a
 // consistent error message in response to failures during asynchronous put operations.
-func populateAsyncPutError(sts *ibmmq.MQSTS) jms20subset.JMSException {
+func populateAsyncPutError(sts *ibmmqv5.MQSTS) jms20subset.JMSException {
 
 	// sts.Reason contains the detail of the first failure
 	errCode2 := strconv.Itoa(int(sts.CompCode))
-	reason2 := ibmmq.MQItoString("RC", int(sts.Reason))
+	reason2 := ibmmqv5.MQItoString("RC", int(sts.Reason))
 	linkedErr := jms20subset.CreateJMSException(reason2, errCode2, nil)
 
 	// Create an error that describes what has failed.

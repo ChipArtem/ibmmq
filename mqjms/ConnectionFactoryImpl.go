@@ -12,8 +12,8 @@ package mqjms
 import (
 	"strconv"
 
+	ibmmq5 "github.com/ChipArtem/k6ibmmq/ibmmq"
 	"github.com/ChipArtem/k6ibmmq/jms20subset"
-	ibmmq "github.com/ibm-messaging/mq-golang/v5/ibmmq"
 )
 
 // ConnectionFactoryImpl defines a struct that contains attributes for
@@ -68,15 +68,15 @@ func (cf ConnectionFactoryImpl) CreateContext(mqos ...jms20subset.MQOptions) (jm
 func (cf ConnectionFactoryImpl) CreateContextWithSessionMode(sessionMode int, mqos ...jms20subset.MQOptions) (jms20subset.JMSContext, jms20subset.JMSException) {
 
 	// Allocate the internal structures required to create an connection to IBM MQ.
-	cno := ibmmq.NewMQCNO()
+	cno := ibmmq5.NewMQCNO()
 
 	if cf.TransportType == TransportType_CLIENT {
 
 		// Indicate that we want to use a client (TCP) connection.
-		cno.Options = ibmmq.MQCNO_CLIENT_BINDING
+		cno.Options = ibmmq5.MQCNO_CLIENT_BINDING
 
 		// Fill in the required fields in the channel definition structure
-		cd := ibmmq.NewMQCD()
+		cd := ibmmq5.NewMQCD()
 		cd.ChannelName = cf.ChannelName
 		cd.ConnectionName = cf.Hostname + "(" + strconv.Itoa(cf.PortNumber) + ")"
 		cno.ClientConn = cd
@@ -88,17 +88,17 @@ func (cf ConnectionFactoryImpl) CreateContextWithSessionMode(sessionMode int, mq
 
 		switch cf.TLSClientAuth {
 		case TLSClientAuth_REQUIRED:
-			cd.SSLClientAuth = ibmmq.MQSCA_REQUIRED
+			cd.SSLClientAuth = ibmmq5.MQSCA_REQUIRED
 		case TLSClientAuth_NONE:
 		case "":
-			cd.SSLClientAuth = ibmmq.MQSCA_OPTIONAL
+			cd.SSLClientAuth = ibmmq5.MQSCA_OPTIONAL
 		default:
 			cd.SSLClientAuth = -1 // Trigger an error message
 		}
 
 		// Set up the reference to the key repository file, if it has been specified.
 		if cf.KeyRepository != "" {
-			sco := ibmmq.NewMQSCO()
+			sco := ibmmq5.NewMQSCO()
 			sco.KeyRepository = cf.KeyRepository
 
 			if cf.CertificateLabel != "" {
@@ -115,7 +115,7 @@ func (cf ConnectionFactoryImpl) CreateContextWithSessionMode(sessionMode int, mq
 	} else if cf.TransportType == TransportType_BINDINGS {
 
 		// Indicate to use Bindings connections.
-		cno.Options = ibmmq.MQCNO_LOCAL_BINDING
+		cno.Options = ibmmq5.MQCNO_LOCAL_BINDING
 
 	}
 
@@ -123,8 +123,8 @@ func (cf ConnectionFactoryImpl) CreateContextWithSessionMode(sessionMode int, mq
 
 		// Store the user credentials in an MQCSP, which ensures that long passwords
 		// can be used.
-		csp := ibmmq.NewMQCSP()
-		csp.AuthenticationType = ibmmq.MQCSP_AUTH_USER_ID_AND_PWD
+		csp := ibmmq5.NewMQCSP()
+		csp.AuthenticationType = ibmmq5.MQCSP_AUTH_USER_ID_AND_PWD
 		csp.UserId = cf.UserName
 		csp.Password = cf.Password
 		cno.SecurityParms = csp
@@ -141,7 +141,7 @@ func (cf ConnectionFactoryImpl) CreateContextWithSessionMode(sessionMode int, mq
 
 	// Use the objects that we have configured to create a connection to the
 	// queue manager.
-	qMgr, err := ibmmq.Connx(cf.QMName, cno)
+	qMgr, err := ibmmq5.Connx(cf.QMName, cno)
 
 	if err == nil {
 
@@ -165,9 +165,9 @@ func (cf ConnectionFactoryImpl) CreateContextWithSessionMode(sessionMode int, mq
 
 		// The underlying MQI call returned an error, so extract the relevant
 		// details and pass it back to the caller as a JMSException
-		rcInt := int(err.(*ibmmq.MQReturn).MQRC)
+		rcInt := int(err.(*ibmmq5.MQReturn).MQRC)
 		errCode := strconv.Itoa(rcInt)
-		reason := ibmmq.MQItoString("RC", rcInt)
+		reason := ibmmq5.MQItoString("RC", rcInt)
 		retErr = jms20subset.CreateJMSException(reason, errCode, err)
 
 	}

@@ -18,8 +18,8 @@ import (
 	"strings"
 	"time"
 
+	ibmmqv5 "github.com/ChipArtem/k6ibmmq/ibmmq"
 	"github.com/ChipArtem/k6ibmmq/jms20subset"
-	ibmmq "github.com/ibm-messaging/mq-golang/v5/ibmmq"
 )
 
 const MessageImpl_PROPERTY_CONVERT_FAILED_REASON string = "MQJMS_E_BAD_TYPE"
@@ -30,8 +30,8 @@ const MessageImpl_PROPERTY_CONVERT_NOTSUPPORTED_CODE string = "1056	"
 // MessageImpl contains the IBM MQ specific attributes that are
 // common to all types of message.
 type MessageImpl struct {
-	mqmd      *ibmmq.MQMD
-	msgHandle *ibmmq.MQMessageHandle
+	mqmd      *ibmmqv5.MQMD
+	msgHandle *ibmmqv5.MQMessageHandle
 }
 
 // GetJMSDeliveryMode extracts the persistence setting from this message
@@ -43,9 +43,9 @@ func (msg *MessageImpl) GetJMSDeliveryMode() int {
 	var jmsPersistence int
 
 	// Convert the MQ persistence value to the JMS delivery mode value.
-	if mqMsgPersistence == ibmmq.MQPER_NOT_PERSISTENT {
+	if mqMsgPersistence == ibmmqv5.MQPER_NOT_PERSISTENT {
 		jmsPersistence = jms20subset.DeliveryMode_NON_PERSISTENT
-	} else if mqMsgPersistence == ibmmq.MQPER_PERSISTENT {
+	} else if mqMsgPersistence == ibmmqv5.MQPER_PERSISTENT {
 		jmsPersistence = jms20subset.DeliveryMode_PERSISTENT
 	} else {
 		// Give some indication if we received something we didn't expect.
@@ -93,7 +93,7 @@ func (msg *MessageImpl) SetJMSReplyTo(dest jms20subset.Destination) jms20subset.
 		// Reply information is stored in the MQ message descriptor, so we need to
 		// add one to this message if it doesn't already exist.
 		if msg.mqmd == nil {
-			msg.mqmd = ibmmq.NewMQMD()
+			msg.mqmd = ibmmqv5.NewMQMD()
 		}
 
 		// Save the queue information into the MQMD so that it can be transmitted.
@@ -142,7 +142,7 @@ func (msg *MessageImpl) SetJMSCorrelationID(correlID string) jms20subset.JMSExce
 	// The CorrelID is carried in the MQ message descriptor, so if there isn't
 	// one already associated with this message then we need to create one.
 	if msg.mqmd == nil {
-		msg.mqmd = ibmmq.NewMQMD()
+		msg.mqmd = ibmmqv5.NewMQMD()
 	}
 
 	// Store the bytes form of the correlID
@@ -316,21 +316,21 @@ func (msg *MessageImpl) SetStringProperty(name string, value *string) jms20subse
 		var valueStr string
 		valueStr = *value
 
-		smpo := ibmmq.NewMQSMPO()
-		pd := ibmmq.NewMQPD()
+		smpo := ibmmqv5.NewMQSMPO()
+		pd := ibmmqv5.NewMQPD()
 
 		linkedErr = msg.msgHandle.SetMP(smpo, name, pd, valueStr)
 	} else {
 		// Looking to unset a value
-		dmpo := ibmmq.NewMQDMPO()
+		dmpo := ibmmqv5.NewMQDMPO()
 
 		linkedErr = msg.msgHandle.DltMP(dmpo, name)
 	}
 
 	if linkedErr != nil {
-		rcInt := int(linkedErr.(*ibmmq.MQReturn).MQRC)
+		rcInt := int(linkedErr.(*ibmmqv5.MQReturn).MQRC)
 		errCode := strconv.Itoa(rcInt)
-		reason := ibmmq.MQItoString("RC", rcInt)
+		reason := ibmmqv5.MQItoString("RC", rcInt)
 		retErr = jms20subset.CreateJMSException(reason, errCode, linkedErr)
 	}
 
@@ -347,7 +347,7 @@ func (msg *MessageImpl) setSpecialStringPropertyValue(name string, value *string
 
 	// Check first that there is an MQMD to write to
 	if msg.mqmd == nil {
-		msg.mqmd = ibmmq.NewMQMD()
+		msg.mqmd = ibmmqv5.NewMQMD()
 	}
 
 	// Assume for now that this property is special as it has passed the basic
@@ -362,14 +362,14 @@ func (msg *MessageImpl) setSpecialStringPropertyValue(name string, value *string
 		if value != nil {
 			msg.mqmd.Format = *value
 		} else {
-			msg.mqmd.Format = ibmmq.MQFMT_NONE // unset
+			msg.mqmd.Format = ibmmqv5.MQFMT_NONE // unset
 		}
 
 	case "JMS_IBM_MQMD_Format":
 		if value != nil {
 			msg.mqmd.Format = *value
 		} else {
-			msg.mqmd.Format = ibmmq.MQFMT_NONE // unset
+			msg.mqmd.Format = ibmmqv5.MQFMT_NONE // unset
 		}
 
 	case "JMSXGroupID":
@@ -378,7 +378,7 @@ func (msg *MessageImpl) setSpecialStringPropertyValue(name string, value *string
 		if value != nil {
 			groupBytes := convertStringToMQBytes(*value)
 			msg.mqmd.GroupId = groupBytes
-			msg.mqmd.MsgFlags |= ibmmq.MQMF_MSG_IN_GROUP
+			msg.mqmd.MsgFlags |= ibmmqv5.MQMF_MSG_IN_GROUP
 		} */
 
 	default:
@@ -398,7 +398,7 @@ func (msg *MessageImpl) setSpecialIntPropertyValue(name string, value int) (bool
 
 	// Check first that there is an MQMD to write to
 	if msg.mqmd == nil {
-		msg.mqmd = ibmmq.NewMQMD()
+		msg.mqmd = ibmmqv5.NewMQMD()
 	}
 
 	// Assume for now that this property is special as it has passed the basic
@@ -467,12 +467,12 @@ func (msg *MessageImpl) getSpecialPropertyValue(name string) (bool, interface{},
 		}
 
 	case "JMS_IBM_Format":
-		if msg.mqmd != nil && msg.mqmd.Format != ibmmq.MQFMT_NONE {
+		if msg.mqmd != nil && msg.mqmd.Format != ibmmqv5.MQFMT_NONE {
 			value = msg.mqmd.Format
 		}
 
 	case "JMS_IBM_MQMD_Format": // same as JMS_IBM_Format
-		if msg.mqmd != nil && msg.mqmd.Format != ibmmq.MQFMT_NONE {
+		if msg.mqmd != nil && msg.mqmd.Format != ibmmqv5.MQFMT_NONE {
 			value = msg.mqmd.Format
 		}
 
@@ -482,7 +482,7 @@ func (msg *MessageImpl) getSpecialPropertyValue(name string) (bool, interface{},
 		}
 
 	case "JMS_IBM_MQMD_ApplOriginData":
-		if msg.mqmd != nil && msg.mqmd.ApplOriginData != ibmmq.MQFMT_NONE {
+		if msg.mqmd != nil && msg.mqmd.ApplOriginData != ibmmqv5.MQFMT_NONE {
 			value = msg.mqmd.ApplOriginData
 		}
 
@@ -543,7 +543,7 @@ func (msg *MessageImpl) getSpecialPropertyValue(name string) (bool, interface{},
 
 	case "JMS_IBM_Last_Msg_In_Group":
 		if msg.mqmd != nil {
-			value = ((msg.mqmd.MsgFlags & ibmmq.MQMF_LAST_MSG_IN_GROUP) != 0)
+			value = ((msg.mqmd.MsgFlags & ibmmqv5.MQMF_LAST_MSG_IN_GROUP) != 0)
 		} else {
 			value = false
 		}
@@ -562,8 +562,8 @@ func (msg *MessageImpl) GetStringProperty(name string) (*string, jms20subset.JMS
 	var valueStrPtr *string
 	var retErr jms20subset.JMSException
 
-	impo := ibmmq.NewMQIMPO()
-	pd := ibmmq.NewMQPD()
+	impo := ibmmqv5.NewMQIMPO()
+	pd := ibmmqv5.NewMQPD()
 
 	// Check first if this is a special property
 	isSpecialProp, value, err := msg.getSpecialPropertyValue(name)
@@ -604,8 +604,8 @@ func (msg *MessageImpl) GetStringProperty(name string) (*string, jms20subset.JMS
 
 	} else {
 
-		mqret := err.(*ibmmq.MQReturn)
-		if mqret.MQRC == ibmmq.MQRC_PROPERTY_NOT_AVAILABLE {
+		mqret := err.(*ibmmqv5.MQReturn)
+		if mqret.MQRC == ibmmqv5.MQRC_PROPERTY_NOT_AVAILABLE {
 			// This indicates that the requested property does not exist.
 			// valueStr will remain with its default value
 			return nil, nil
@@ -613,7 +613,7 @@ func (msg *MessageImpl) GetStringProperty(name string) (*string, jms20subset.JMS
 			// Err was not nil
 			rcInt := int(mqret.MQRC)
 			errCode := strconv.Itoa(rcInt)
-			reason := ibmmq.MQItoString("RC", rcInt)
+			reason := ibmmqv5.MQItoString("RC", rcInt)
 			retErr = jms20subset.CreateJMSException(reason, errCode, mqret)
 
 			valueStrPtr = nil
@@ -638,15 +638,15 @@ func (msg *MessageImpl) SetIntProperty(name string, value int) jms20subset.JMSEx
 		return retErr
 	}
 
-	smpo := ibmmq.NewMQSMPO()
-	pd := ibmmq.NewMQPD()
+	smpo := ibmmqv5.NewMQSMPO()
+	pd := ibmmqv5.NewMQPD()
 
 	linkedErr = msg.msgHandle.SetMP(smpo, name, pd, value)
 
 	if linkedErr != nil {
-		rcInt := int(linkedErr.(*ibmmq.MQReturn).MQRC)
+		rcInt := int(linkedErr.(*ibmmqv5.MQReturn).MQRC)
 		errCode := strconv.Itoa(rcInt)
-		reason := ibmmq.MQItoString("RC", rcInt)
+		reason := ibmmqv5.MQItoString("RC", rcInt)
 		retErr = jms20subset.CreateJMSException(reason, errCode, linkedErr)
 	}
 
@@ -660,8 +660,8 @@ func (msg *MessageImpl) GetIntProperty(name string) (int, jms20subset.JMSExcepti
 	var valueRet int
 	var retErr jms20subset.JMSException
 
-	impo := ibmmq.NewMQIMPO()
-	pd := ibmmq.NewMQPD()
+	impo := ibmmqv5.NewMQIMPO()
+	pd := ibmmqv5.NewMQPD()
 
 	// Check first if this is a special property
 	isSpecialProp, value, err := msg.getSpecialPropertyValue(name)
@@ -703,8 +703,8 @@ func (msg *MessageImpl) GetIntProperty(name string) (int, jms20subset.JMSExcepti
 
 	} else {
 
-		mqret := err.(*ibmmq.MQReturn)
-		if mqret.MQRC == ibmmq.MQRC_PROPERTY_NOT_AVAILABLE {
+		mqret := err.(*ibmmqv5.MQReturn)
+		if mqret.MQRC == ibmmqv5.MQRC_PROPERTY_NOT_AVAILABLE {
 			// This indicates that the requested property does not exist.
 			// valueRet will remain with its default value
 			return 0, nil
@@ -712,7 +712,7 @@ func (msg *MessageImpl) GetIntProperty(name string) (int, jms20subset.JMSExcepti
 			// Err was not nil
 			rcInt := int(mqret.MQRC)
 			errCode := strconv.Itoa(rcInt)
-			reason := ibmmq.MQItoString("RC", rcInt)
+			reason := ibmmqv5.MQItoString("RC", rcInt)
 			retErr = jms20subset.CreateJMSException(reason, errCode, mqret)
 		}
 	}
@@ -725,15 +725,15 @@ func (msg *MessageImpl) SetDoubleProperty(name string, value float64) jms20subse
 
 	var linkedErr error
 
-	smpo := ibmmq.NewMQSMPO()
-	pd := ibmmq.NewMQPD()
+	smpo := ibmmqv5.NewMQSMPO()
+	pd := ibmmqv5.NewMQPD()
 
 	linkedErr = msg.msgHandle.SetMP(smpo, name, pd, value)
 
 	if linkedErr != nil {
-		rcInt := int(linkedErr.(*ibmmq.MQReturn).MQRC)
+		rcInt := int(linkedErr.(*ibmmqv5.MQReturn).MQRC)
 		errCode := strconv.Itoa(rcInt)
-		reason := ibmmq.MQItoString("RC", rcInt)
+		reason := ibmmqv5.MQItoString("RC", rcInt)
 		retErr = jms20subset.CreateJMSException(reason, errCode, linkedErr)
 	}
 
@@ -747,8 +747,8 @@ func (msg *MessageImpl) GetDoubleProperty(name string) (float64, jms20subset.JMS
 	var valueRet float64
 	var retErr jms20subset.JMSException
 
-	impo := ibmmq.NewMQIMPO()
-	pd := ibmmq.NewMQPD()
+	impo := ibmmqv5.NewMQIMPO()
+	pd := ibmmqv5.NewMQPD()
 
 	// Check first if this is a special property
 	isSpecialProp, value, err := msg.getSpecialPropertyValue(name)
@@ -783,8 +783,8 @@ func (msg *MessageImpl) GetDoubleProperty(name string) (float64, jms20subset.JMS
 		}
 	} else {
 
-		mqret := err.(*ibmmq.MQReturn)
-		if mqret.MQRC == ibmmq.MQRC_PROPERTY_NOT_AVAILABLE {
+		mqret := err.(*ibmmqv5.MQReturn)
+		if mqret.MQRC == ibmmqv5.MQRC_PROPERTY_NOT_AVAILABLE {
 			// This indicates that the requested property does not exist.
 			// valueRet will remain with its default value
 			return 0, nil
@@ -792,7 +792,7 @@ func (msg *MessageImpl) GetDoubleProperty(name string) (float64, jms20subset.JMS
 			// Err was not nil
 			rcInt := int(mqret.MQRC)
 			errCode := strconv.Itoa(rcInt)
-			reason := ibmmq.MQItoString("RC", rcInt)
+			reason := ibmmqv5.MQItoString("RC", rcInt)
 			retErr = jms20subset.CreateJMSException(reason, errCode, mqret)
 		}
 	}
@@ -805,8 +805,8 @@ func (msg *MessageImpl) SetBooleanProperty(name string, value bool) jms20subset.
 
 	var linkedErr error
 
-	smpo := ibmmq.NewMQSMPO()
-	pd := ibmmq.NewMQPD()
+	smpo := ibmmqv5.NewMQSMPO()
+	pd := ibmmqv5.NewMQPD()
 
 	// Different code path and shortcut for special header properties
 	isSpecial, specialErr := msg.setSpecialBooleanPropertyValue(name, value)
@@ -821,9 +821,9 @@ func (msg *MessageImpl) SetBooleanProperty(name string, value bool) jms20subset.
 	linkedErr = msg.msgHandle.SetMP(smpo, name, pd, value)
 
 	if linkedErr != nil {
-		rcInt := int(linkedErr.(*ibmmq.MQReturn).MQRC)
+		rcInt := int(linkedErr.(*ibmmqv5.MQReturn).MQRC)
 		errCode := strconv.Itoa(rcInt)
-		reason := ibmmq.MQItoString("RC", rcInt)
+		reason := ibmmqv5.MQItoString("RC", rcInt)
 		retErr = jms20subset.CreateJMSException(reason, errCode, linkedErr)
 	}
 
@@ -840,7 +840,7 @@ func (msg *MessageImpl) setSpecialBooleanPropertyValue(name string, value bool) 
 
 	// Check first that there is an MQMD to write to
 	if msg.mqmd == nil {
-		msg.mqmd = ibmmq.NewMQMD()
+		msg.mqmd = ibmmqv5.NewMQMD()
 	}
 
 	// Assume for now that this property is special as it has passed the basic
@@ -868,8 +868,8 @@ func (msg *MessageImpl) GetBooleanProperty(name string) (bool, jms20subset.JMSEx
 	var valueRet bool
 	var retErr jms20subset.JMSException
 
-	impo := ibmmq.NewMQIMPO()
-	pd := ibmmq.NewMQPD()
+	impo := ibmmqv5.NewMQIMPO()
+	pd := ibmmqv5.NewMQPD()
 
 	// Check first if this is a special property
 	isSpecialProp, value, err := msg.getSpecialPropertyValue(name)
@@ -908,8 +908,8 @@ func (msg *MessageImpl) GetBooleanProperty(name string) (bool, jms20subset.JMSEx
 		}
 	} else {
 
-		mqret := err.(*ibmmq.MQReturn)
-		if mqret.MQRC == ibmmq.MQRC_PROPERTY_NOT_AVAILABLE {
+		mqret := err.(*ibmmqv5.MQReturn)
+		if mqret.MQRC == ibmmqv5.MQRC_PROPERTY_NOT_AVAILABLE {
 			// This indicates that the requested property does not exist.
 			// valueRet will remain with its default value
 			return false, nil
@@ -917,7 +917,7 @@ func (msg *MessageImpl) GetBooleanProperty(name string) (bool, jms20subset.JMSEx
 			// Err was not nil
 			rcInt := int(mqret.MQRC)
 			errCode := strconv.Itoa(rcInt)
-			reason := ibmmq.MQItoString("RC", rcInt)
+			reason := ibmmqv5.MQItoString("RC", rcInt)
 			retErr = jms20subset.CreateJMSException(reason, errCode, mqret)
 		}
 	}
@@ -947,23 +947,23 @@ func (msg *MessageImpl) GetPropertyNames() ([]string, jms20subset.JMSException) 
 // - GetPropertyNames supplies an empty name parameter to get a []string of all property names
 func (msg *MessageImpl) getPropertiesInternal(name string) (bool, []string, jms20subset.JMSException) {
 
-	impo := ibmmq.NewMQIMPO()
-	pd := ibmmq.NewMQPD()
+	impo := ibmmqv5.NewMQIMPO()
+	pd := ibmmqv5.NewMQPD()
 	propNames := []string{}
 
-	impo.Options = ibmmq.MQIMPO_CONVERT_VALUE | ibmmq.MQIMPO_INQ_FIRST
+	impo.Options = ibmmqv5.MQIMPO_CONVERT_VALUE | ibmmqv5.MQIMPO_INQ_FIRST
 	for propsToRead := true; propsToRead; {
 
 		gotName, _, err := msg.msgHandle.InqMP(impo, pd, "%")
-		impo.Options = ibmmq.MQIMPO_CONVERT_VALUE | ibmmq.MQIMPO_INQ_NEXT
+		impo.Options = ibmmqv5.MQIMPO_CONVERT_VALUE | ibmmqv5.MQIMPO_INQ_NEXT
 
 		if err != nil {
-			mqret := err.(*ibmmq.MQReturn)
-			if mqret.MQRC != ibmmq.MQRC_PROPERTY_NOT_AVAILABLE {
+			mqret := err.(*ibmmqv5.MQReturn)
+			if mqret.MQRC != ibmmqv5.MQRC_PROPERTY_NOT_AVAILABLE {
 
 				rcInt := int(mqret.MQRC)
 				errCode := strconv.Itoa(rcInt)
-				reason := ibmmq.MQItoString("RC", rcInt)
+				reason := ibmmqv5.MQItoString("RC", rcInt)
 				retErr := jms20subset.CreateJMSException(reason, errCode, mqret)
 				return false, nil, retErr
 
@@ -996,7 +996,7 @@ func (msg *MessageImpl) ClearProperties() jms20subset.JMSException {
 
 	if jmsErr == nil {
 
-		dmpo := ibmmq.NewMQDMPO()
+		dmpo := ibmmqv5.NewMQDMPO()
 
 		for _, propName := range allPropNames {
 
@@ -1004,9 +1004,9 @@ func (msg *MessageImpl) ClearProperties() jms20subset.JMSException {
 			err := msg.msgHandle.DltMP(dmpo, propName)
 
 			if err != nil {
-				rcInt := int(err.(*ibmmq.MQReturn).MQRC)
+				rcInt := int(err.(*ibmmqv5.MQReturn).MQRC)
 				errCode := strconv.Itoa(rcInt)
-				reason := ibmmq.MQItoString("RC", rcInt)
+				reason := ibmmqv5.MQItoString("RC", rcInt)
 				jmsErr = jms20subset.CreateJMSException(reason, errCode, err)
 				break
 			}

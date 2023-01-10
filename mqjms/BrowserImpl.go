@@ -10,8 +10,8 @@
 package mqjms
 
 import (
+	ibmmqv5 "github.com/ChipArtem/k6ibmmq/ibmmq"
 	"github.com/ChipArtem/k6ibmmq/jms20subset"
-	ibmmq "github.com/ibm-messaging/mq-golang/v5/ibmmq"
 )
 
 // BrowserImpl represents the JMS QueueBrowser object that allows applications
@@ -40,7 +40,7 @@ func (browser *BrowserImpl) GetEnumeration() (jms20subset.MessageIterator, jms20
 func (browser *BrowserImpl) GetNext() (jms20subset.Message, jms20subset.JMSException) {
 
 	// Like a ReceiveNoWait, but with Browse turned on.
-	gmo := ibmmq.NewMQGMO()
+	gmo := ibmmqv5.NewMQGMO()
 	gmo.Options |= *browser.browseOption
 
 	msg, err := browser.receiveInternal(gmo)
@@ -48,7 +48,7 @@ func (browser *BrowserImpl) GetNext() (jms20subset.Message, jms20subset.JMSExcep
 	if err == nil {
 		// After we have browsed the first message successfully we move on to asking
 		// for the "next" message from this point onwards.
-		brse := int32(ibmmq.MQGMO_BROWSE_NEXT)
+		brse := int32(ibmmqv5.MQGMO_BROWSE_NEXT)
 		browser.browseOption = &brse
 	}
 

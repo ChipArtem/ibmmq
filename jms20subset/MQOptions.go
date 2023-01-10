@@ -1,11 +1,11 @@
 package jms20subset
 
-import "github.com/ibm-messaging/mq-golang/v5/ibmmq"
+import ibmmqv5 "github.com/ChipArtem/k6ibmmq/ibmmq"
 
-type MQOptions func(cno *ibmmq.MQCNO)
+type MQOptions func(cno *ibmmqv5.MQCNO)
 
 func WithMaxMsgLength(maxMsgLength int32) MQOptions {
-	return func(cno *ibmmq.MQCNO) {
+	return func(cno *ibmmqv5.MQCNO) {
 		cno.ClientConn.MaxMsgLength = maxMsgLength
 	}
 }

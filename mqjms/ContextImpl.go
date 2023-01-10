@@ -13,14 +13,14 @@ import (
 	"fmt"
 	"strconv"
 
+	ibmmqv5 "github.com/ChipArtem/k6ibmmq/ibmmq"
 	"github.com/ChipArtem/k6ibmmq/jms20subset"
-	ibmmq "github.com/ibm-messaging/mq-golang/v5/ibmmq"
 )
 
 // ContextImpl encapsulates the objects necessary to maintain an active
 // connection to an IBM MQ queue manager.
 type ContextImpl struct {
-	qMgr              ibmmq.MQQueueManager
+	qMgr              ibmmqv5.MQQueueManager
 	sessionMode       int
 	receiveBufferSize int
 	sendCheckCount    int
@@ -68,8 +68,8 @@ func (ctx ContextImpl) CreateConsumerWithSelector(dest jms20subset.Destination, 
 	// First validate the selector string format (we don't make use of it at
 	// runtime until the receive is called)
 	if selector != "" {
-		getmqmd := ibmmq.NewMQMD()
-		gmo := ibmmq.NewMQGMO()
+		getmqmd := ibmmqv5.NewMQMD()
+		gmo := ibmmqv5.NewMQGMO()
 
 		selectorErr := applySelector(selector, getmqmd, gmo)
 		if selectorErr != nil {
@@ -78,11 +78,11 @@ func (ctx ContextImpl) CreateConsumerWithSelector(dest jms20subset.Destination, 
 	}
 
 	// Set up the necessary objects to open the queue
-	mqod := ibmmq.NewMQOD()
+	mqod := ibmmqv5.NewMQOD()
 	var openOptions int32
-	openOptions = ibmmq.MQOO_FAIL_IF_QUIESCING
-	openOptions |= ibmmq.MQOO_INPUT_AS_Q_DEF
-	mqod.ObjectType = ibmmq.MQOT_Q
+	openOptions = ibmmqv5.MQOO_FAIL_IF_QUIESCING
+	openOptions |= ibmmqv5.MQOO_INPUT_AS_Q_DEF
+	mqod.ObjectType = ibmmqv5.MQOT_Q
 	mqod.ObjectName = dest.GetDestinationName()
 
 	var retErr jms20subset.JMSException
@@ -104,9 +104,9 @@ func (ctx ContextImpl) CreateConsumerWithSelector(dest jms20subset.Destination, 
 	} else {
 
 		// Error occurred - extract the failure details and return to the caller.
-		rcInt := int(err.(*ibmmq.MQReturn).MQRC)
+		rcInt := int(err.(*ibmmqv5.MQReturn).MQRC)
 		errCode := strconv.Itoa(rcInt)
-		reason := ibmmq.MQItoString("RC", rcInt)
+		reason := ibmmqv5.MQItoString("RC", rcInt)
 		retErr = jms20subset.CreateJMSException(reason, errCode, err)
 
 	}
@@ -119,12 +119,12 @@ func (ctx ContextImpl) CreateConsumerWithSelector(dest jms20subset.Destination, 
 func (ctx ContextImpl) CreateBrowser(dest jms20subset.Destination) (jms20subset.QueueBrowser, jms20subset.JMSException) {
 
 	// Set up the necessary objects to open the queue
-	mqod := ibmmq.NewMQOD()
+	mqod := ibmmqv5.NewMQOD()
 	var openOptions int32
-	openOptions = ibmmq.MQOO_FAIL_IF_QUIESCING
-	openOptions |= ibmmq.MQOO_INPUT_AS_Q_DEF
-	openOptions |= ibmmq.MQOO_BROWSE // This is the important part for browsing!
-	mqod.ObjectType = ibmmq.MQOT_Q
+	openOptions = ibmmqv5.MQOO_FAIL_IF_QUIESCING
+	openOptions |= ibmmqv5.MQOO_INPUT_AS_Q_DEF
+	openOptions |= ibmmqv5.MQOO_BROWSE // This is the important part for browsing!
+	mqod.ObjectType = ibmmqv5.MQOT_Q
 	mqod.ObjectName = dest.GetDestinationName()
 
 	var retErr jms20subset.JMSException
@@ -142,7 +142,7 @@ func (ctx ContextImpl) CreateBrowser(dest jms20subset.Destination) (jms20subset.
 			qObject: qObject,
 		}
 
-		brse := int32(ibmmq.MQGMO_BROWSE_FIRST)
+		brse := int32(ibmmqv5.MQGMO_BROWSE_FIRST)
 
 		browser = &BrowserImpl{
 			browseOption: &brse,
@@ -152,9 +152,9 @@ func (ctx ContextImpl) CreateBrowser(dest jms20subset.Destination) (jms20subset.
 	} else {
 
 		// Error occurred - extract the failure details and return to the caller.
-		rcInt := int(err.(*ibmmq.MQReturn).MQRC)
+		rcInt := int(err.(*ibmmqv5.MQReturn).MQRC)
 		errCode := strconv.Itoa(rcInt)
-		reason := ibmmq.MQItoString("RC", rcInt)
+		reason := ibmmqv5.MQItoString("RC", rcInt)
 		retErr = jms20subset.CreateJMSException(reason, errCode, err)
 
 	}
@@ -178,9 +178,9 @@ func (ctx ContextImpl) CreateTextMessage() jms20subset.TextMessage {
 
 // createMsgHandle creates a new message handle object that can be used to
 // store and retrieve message properties.
-func createMsgHandle(qMgr ibmmq.MQQueueManager) ibmmq.MQMessageHandle {
+func createMsgHandle(qMgr ibmmqv5.MQQueueManager) ibmmqv5.MQMessageHandle {
 
-	cmho := ibmmq.NewMQCMHO()
+	cmho := ibmmqv5.NewMQCMHO()
 	thisMsgHandle, err := qMgr.CrtMH(cmho)
 
 	if err != nil {
@@ -242,7 +242,7 @@ func (ctx ContextImpl) Commit() jms20subset.JMSException {
 
 	var retErr jms20subset.JMSException
 
-	if (ibmmq.MQQueueManager{}) != ctx.qMgr {
+	if (ibmmqv5.MQQueueManager{}) != ctx.qMgr {
 		err := ctx.qMgr.Cmit()
 
 		if err != nil {
@@ -256,8 +256,8 @@ func (ctx ContextImpl) Commit() jms20subset.JMSException {
 				// need to check now whether they were successful or not.
 
 				// Invoke the Stat call agains the queue manager to check for errors.
-				sts := ibmmq.NewMQSTS()
-				statErr := ctx.qMgr.Stat(ibmmq.MQSTAT_TYPE_ASYNC_ERROR, sts)
+				sts := ibmmqv5.NewMQSTS()
+				statErr := ctx.qMgr.Stat(ibmmqv5.MQSTAT_TYPE_ASYNC_ERROR, sts)
 
 				if statErr != nil {
 
@@ -279,9 +279,9 @@ func (ctx ContextImpl) Commit() jms20subset.JMSException {
 
 			}
 
-			rcInt := int(err.(*ibmmq.MQReturn).MQRC)
+			rcInt := int(err.(*ibmmqv5.MQReturn).MQRC)
 			errCode := strconv.Itoa(rcInt)
-			reason := ibmmq.MQItoString("RC", rcInt)
+			reason := ibmmqv5.MQItoString("RC", rcInt)
 			retErr = jms20subset.CreateJMSException(reason, errCode, linkedErr)
 
 		}
@@ -296,14 +296,14 @@ func (ctx ContextImpl) Rollback() jms20subset.JMSException {
 
 	var retErr jms20subset.JMSException
 
-	if (ibmmq.MQQueueManager{}) != ctx.qMgr {
+	if (ibmmqv5.MQQueueManager{}) != ctx.qMgr {
 		err := ctx.qMgr.Back()
 
 		if err != nil {
 
-			rcInt := int(err.(*ibmmq.MQReturn).MQRC)
+			rcInt := int(err.(*ibmmqv5.MQReturn).MQRC)
 			errCode := strconv.Itoa(rcInt)
-			reason := ibmmq.MQItoString("RC", rcInt)
+			reason := ibmmqv5.MQItoString("RC", rcInt)
 			retErr = jms20subset.CreateJMSException(reason, errCode, err)
 
 		}
@@ -320,7 +320,7 @@ func (ctx ContextImpl) Close() {
 	// JMS semantics are to roll back an active transaction on Close.
 	ctx.Rollback()
 
-	if (ibmmq.MQQueueManager{}) != ctx.qMgr {
+	if (ibmmqv5.MQQueueManager{}) != ctx.qMgr {
 		ctx.qMgr.Disc()
 	}
 

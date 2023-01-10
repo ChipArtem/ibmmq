@@ -7,7 +7,7 @@ import (
 	"time"
 
 	"github.com/ChipArtem/k6ibmmq/jms20subset"
-	"github.com/ibm-messaging/mq-golang-jms20/mqjms"
+	"github.com/ChipArtem/k6ibmmq/mqjms"
 	"go.k6.io/k6/js/modules"
 )
 

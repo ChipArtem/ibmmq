@@ -14,15 +14,15 @@ import (
 	"strconv"
 	"strings"
 
+	ibmmqv5 "github.com/ChipArtem/k6ibmmq/ibmmq"
 	"github.com/ChipArtem/k6ibmmq/jms20subset"
-	ibmmq "github.com/ibm-messaging/mq-golang/v5/ibmmq"
 )
 
 // ConsumerImpl defines a struct that contains the necessary objects for
 // receiving messages from a queue on an IBM MQ queue manager.
 type ConsumerImpl struct {
 	ctx      ContextImpl
-	qObject  ibmmq.MQObject
+	qObject  ibmmqv5.MQObject
 	selector string
 }
 
@@ -31,7 +31,7 @@ type ConsumerImpl struct {
 // message to be received.
 func (consumer ConsumerImpl) ReceiveNoWait() (jms20subset.Message, jms20subset.JMSException) {
 
-	gmo := ibmmq.NewMQGMO()
+	gmo := ibmmqv5.NewMQGMO()
 	return consumer.receiveInternal(gmo)
 
 }
@@ -42,11 +42,11 @@ func (consumer ConsumerImpl) ReceiveNoWait() (jms20subset.Message, jms20subset.J
 func (consumer ConsumerImpl) Receive(waitMillis int32) (jms20subset.Message, jms20subset.JMSException) {
 
 	if waitMillis <= 0 {
-		waitMillis = ibmmq.MQWI_UNLIMITED
+		waitMillis = ibmmqv5.MQWI_UNLIMITED
 	}
 
-	gmo := ibmmq.NewMQGMO()
-	gmo.Options |= ibmmq.MQGMO_WAIT
+	gmo := ibmmqv5.NewMQGMO()
+	gmo.Options |= ibmmqv5.MQGMO_WAIT
 	gmo.WaitInterval = waitMillis
 
 	return consumer.receiveInternal(gmo)
@@ -55,13 +55,13 @@ func (consumer ConsumerImpl) Receive(waitMillis int32) (jms20subset.Message, jms
 
 // Internal method to provide common functionality across the different types
 // of receive.
-func (consumer ConsumerImpl) receiveInternal(gmo *ibmmq.MQGMO) (jms20subset.Message, jms20subset.JMSException) {
+func (consumer ConsumerImpl) receiveInternal(gmo *ibmmqv5.MQGMO) (jms20subset.Message, jms20subset.JMSException) {
 
 	// Prepare objects to be used in receiving the message.
 	var msg jms20subset.Message
 	var jmsErr jms20subset.JMSException
 
-	getmqmd := ibmmq.NewMQMD()
+	getmqmd := ibmmqv5.NewMQMD()
 
 	myBufferSize := 32768
 
@@ -72,18 +72,18 @@ func (consumer ConsumerImpl) receiveInternal(gmo *ibmmq.MQGMO) (jms20subset.Mess
 	buffer := make([]byte, myBufferSize)
 
 	// Calculate the syncpoint value
-	syncpointSetting := ibmmq.MQGMO_NO_SYNCPOINT
+	syncpointSetting := ibmmqv5.MQGMO_NO_SYNCPOINT
 	if consumer.ctx.sessionMode == jms20subset.JMSContextSESSIONTRANSACTED {
-		syncpointSetting = ibmmq.MQGMO_SYNCPOINT
+		syncpointSetting = ibmmqv5.MQGMO_SYNCPOINT
 	}
 
 	// Set the GMO (get message options)
 	gmo.Options |= syncpointSetting
-	gmo.Options |= ibmmq.MQGMO_FAIL_IF_QUIESCING
+	gmo.Options |= ibmmqv5.MQGMO_FAIL_IF_QUIESCING
 
 	// Include the message properties in the msgHandle
-	gmo.Options |= ibmmq.MQGMO_PROPERTIES_IN_HANDLE
-	cmho := ibmmq.NewMQCMHO()
+	gmo.Options |= ibmmqv5.MQGMO_PROPERTIES_IN_HANDLE
+	cmho := ibmmqv5.NewMQCMHO()
 	thisMsgHandle, _ := consumer.ctx.qMgr.CrtMH(cmho)
 	gmo.MsgHandle = thisMsgHandle
 
@@ -102,7 +102,7 @@ func (consumer ConsumerImpl) receiveInternal(gmo *ibmmq.MQGMO) (jms20subset.Mess
 		// Message received successfully (without error).
 		// Determine on the basis of the format field what sort of message to create.
 
-		if getmqmd.Format == ibmmq.MQFMT_STRING {
+		if getmqmd.Format == ibmmqv5.MQFMT_STRING {
 
 			var msgBodyStr *string
 
@@ -140,9 +140,9 @@ func (consumer ConsumerImpl) receiveInternal(gmo *ibmmq.MQGMO) (jms20subset.Mess
 	} else {
 
 		// Error code was returned from MQ call.
-		mqret := err.(*ibmmq.MQReturn)
+		mqret := err.(*ibmmqv5.MQReturn)
 
-		if mqret.MQRC == ibmmq.MQRC_NO_MSG_AVAILABLE {
+		if mqret.MQRC == ibmmqv5.MQRC_NO_MSG_AVAILABLE {
 
 			// This isn't a real error - it's the way that MQ indicates that there
 			// is no message available to be received.
@@ -154,7 +154,7 @@ func (consumer ConsumerImpl) receiveInternal(gmo *ibmmq.MQGMO) (jms20subset.Mess
 			// a JMSException
 			rcInt := int(mqret.MQRC)
 			errCode := strconv.Itoa(rcInt)
-			reason := ibmmq.MQItoString("RC", rcInt)
+			reason := ibmmqv5.MQItoString("RC", rcInt)
 
 			jmsErr = jms20subset.CreateJMSException(reason, errCode, err)
 		}
@@ -285,7 +285,7 @@ func (consumer ConsumerImpl) ReceiveBytesBody(waitMillis int32) (*[]byte, jms20s
 // applySelector is responsible for converting the JMS style selector string
 // into the relevant options on the MQI structures so that the correct messages
 // are received by the application.
-func applySelector(selector string, getmqmd *ibmmq.MQMD, gmo *ibmmq.MQGMO) error {
+func applySelector(selector string, getmqmd *ibmmqv5.MQMD, gmo *ibmmqv5.MQGMO) error {
 
 	if selector == "" {
 		// No selector is provided, so nothing to do here.
@@ -355,7 +355,7 @@ func applySelector(selector string, getmqmd *ibmmq.MQMD, gmo *ibmmq.MQGMO) error
 // behalf of that consumer.
 func (consumer ConsumerImpl) Close() {
 
-	if (ibmmq.MQObject{}) != consumer.qObject {
+	if (ibmmqv5.MQObject{}) != consumer.qObject {
 		consumer.qObject.Close(0)
 	}
 
