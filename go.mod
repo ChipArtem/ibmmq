@@ -2,11 +2,7 @@ module github.com/ChipArtem/k6ibmmq
 
 go 1.18
 
-require (
-	github.com/ibm-messaging/mq-golang-jms20 v1.9.0
-	github.com/ibm-messaging/mq-golang/v5 v5.3.3
-	go.k6.io/k6 v0.42.0
-)
+require go.k6.io/k6 v0.42.0
 
 require (
 	github.com/dlclark/regexp2 v1.7.0 // indirect
