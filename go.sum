@@ -1,3 +1,5 @@
+github.com/ChipArtem/mq2 v0.0.0-20230110184439-884adfa60ea8 h1:NOgS1aysxabHS+C4PyjCR9vcEnYxM/IK1oSU0qQeAtk=
+github.com/ChipArtem/mq2 v0.0.0-20230110184439-884adfa60ea8/go.mod h1:6dAoyXTKPXPXA4ddv0FC1Sa+4BlbxeqDFy6jacyU3eI=
 github.com/andybalholm/brotli v1.0.4 h1:V7DdXeJtZscaqfNuAdSRuRFzuiKlHSC/Zh3zl9qY3JY=
 github.com/creack/pty v1.1.9/go.mod h1:oKZEueFk5CKHvIhNR5MUki03XCEU+Q6VDXinZuGJ33E=
 github.com/davecgh/go-spew v1.1.0/go.mod h1:J7Y8YcW2NihsgmVo/mv3lAwl/skON4iLHjSsI+c5H38=
