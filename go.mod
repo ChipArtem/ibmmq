@@ -2,13 +2,17 @@ module github.com/ChipArtem/ibmmq
 
 go 1.18
 
-require go.k6.io/k6 v0.42.0
+require (
+	github.com/ibm-messaging/mq-golang-jms20 v1.9.0
+	go.k6.io/k6 v0.42.0
+)
 
 require (
 	github.com/dlclark/regexp2 v1.7.0 // indirect
 	github.com/dop251/goja v0.0.0-20221106173738-3b8a68ca89b4 // indirect
 	github.com/fatih/color v1.13.0 // indirect
 	github.com/go-sourcemap/sourcemap v2.1.4-0.20211119122758-180fcef48034+incompatible // indirect
+	github.com/ibm-messaging/mq-golang/v5 v5.3.2 // indirect
 	github.com/josharian/intern v1.0.0 // indirect
 	github.com/mailru/easyjson v0.7.7 // indirect
 	github.com/mattn/go-colorable v0.1.13 // indirect
