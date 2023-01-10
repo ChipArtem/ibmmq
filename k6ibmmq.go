@@ -1,4 +1,4 @@
-package ibmmq
+package k6ibmmq
 
 import (
 	"fmt"
@@ -14,10 +14,10 @@ import (
 var i int32 = 0
 
 func init() {
-	modules.Register("k6/x/ibmq", new(IbmMQ))
+	modules.Register("k6/x/ibmmq", new(K6ibmmq))
 }
 
-type IbmMQ struct {
+type K6ibmmq struct {
 	mng *mngMQ
 }
 
@@ -67,7 +67,7 @@ func (m *mngMQ) Close(){
 	m.context.Close()
 }
 
-func (i *IbmMQ) Connect(QM, Host, Port, Channel, User, Pass, AppName, qIn, qOut string) *IbmMQ {
+func (i *K6ibmmq) Connect(QM, Host, Port, Channel, User, Pass, AppName, qIn, qOut string) *K6ibmmq {
 	p, err := strconv.Atoi(Port)
 	if err != nil {
 		log.Fatalf("convert port string to Int: %v", err)
@@ -80,7 +80,7 @@ func (i *IbmMQ) Connect(QM, Host, Port, Channel, User, Pass, AppName, qIn, qOut 
 	return i
 }
 
-func (i *IbmMQ) Write() error {
+func (i *K6ibmmq) Write() error {
 	err := i.mng.producer.SendBytes(i.mng.queueIn, []byte("body"))
 	if err == nil {
 		return fmt.Errorf("sendMessage: %v", err)
@@ -88,7 +88,7 @@ func (i *IbmMQ) Write() error {
 	return nil
 }
 
-func (i *IbmMQ) Read() error {
+func (i *K6ibmmq) Read() error {
 	for c := 0; c <= 50; c++ {
 		rcvBody, err := i.mng.consumer.ReceiveBytesBodyNoWait()
 		if err != nil {
@@ -102,6 +102,6 @@ func (i *IbmMQ) Read() error {
 	return fmt.Errorf("No message received")
 }
 
-func (i *IbmMQ) Close(){
+func (i *K6ibmmq) Close(){
 	i.Close()
 }
