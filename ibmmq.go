@@ -18,7 +18,53 @@ func init() {
 }
 
 type IbmMQ struct {
-	mng *MngIBMMQ
+	mng *mngMQ
+}
+
+
+type mngMQ struct {
+	context  jms20subset.JMSContext
+	producer jms20subset.JMSProducer
+	consumer jms20subset.JMSConsumer
+	queueIn  jms20subset.Queue
+	queueOut jms20subset.Queue
+}
+
+func NewIbmMqMng(QM, Host string, Port int, Channel, User, Pass, AppName, qIn, qOut string) (*mngMQ, error) {
+	connFactory := mqjms.ConnectionFactoryImpl{
+		QMName:      QM,
+		Hostname:    Host,
+		PortNumber:  Port,
+		ChannelName: Channel,
+		UserName:    User,
+		Password:    Pass,
+		ApplName:    AppName,
+	}
+	context, err := connFactory.CreateContext()
+	if err != nil {
+		return nil, fmt.Errorf("CreateContext: %v", err)
+	}
+
+	queueOut := context.CreateQueue(qOut)
+
+	consumer, err := context.CreateConsumer(queueOut)
+	if err != nil {
+		return nil, fmt.Errorf("CreateConsumer: %v", err)
+	}
+
+	mng := &mngMQ{
+		context:  context,
+		producer: context.CreateProducer(),
+		consumer: consumer,
+		queueIn:  context.CreateQueue(qIn),
+		queueOut: queueOut,
+	}
+	return mng, nil
+}
+
+func (m *mngMQ) Close(){
+	m.consumer.Close()
+	m.context.Close()
 }
 
 func (i *IbmMQ) Connect(QM, Host, Port, Channel, User, Pass, AppName, qIn, qOut string) *IbmMQ {
