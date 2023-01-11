@@ -6,8 +6,7 @@ import (
 	"strconv"
 	"time"
 
-	"github.com/ChipArtem/k6ibmmq/jms20subset"
-	"github.com/ChipArtem/k6ibmmq/mqjms"
+	"github.com/ChipArtem/k6ibmmq/mqibm"
 	"go.k6.io/k6/js/modules"
 )
 
@@ -22,11 +21,11 @@ type K6ibmmq struct {
 }
 
 type mngMQ struct {
-	context  jms20subset.JMSContext
-	producer jms20subset.JMSProducer
-	consumer jms20subset.JMSConsumer
-	queueIn  jms20subset.Queue
-	queueOut jms20subset.Queue
+	context  JMSContext
+	producer JMSProducer
+	consumer JMSConsumer
+	queueIn  Queue
+	queueOut Queue
 }
 
 func NewIbmMqMng(QM, Host string, Port int, Channel, User, Pass, AppName, qIn, qOut string) (*mngMQ, error) {
