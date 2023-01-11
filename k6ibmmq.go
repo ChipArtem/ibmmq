@@ -21,15 +21,15 @@ type K6ibmmq struct {
 }
 
 type mngMQ struct {
-	context  JMSContext
-	producer JMSProducer
-	consumer JMSConsumer
-	queueIn  Queue
-	queueOut Queue
+	context  mqibm.JMSContext
+	producer mqibm.JMSProducer
+	consumer mqibm.JMSConsumer
+	queueIn  mqibm.Queue
+	queueOut mqibm.Queue
 }
 
 func NewIbmMqMng(QM, Host string, Port int, Channel, User, Pass, AppName, qIn, qOut string) (*mngMQ, error) {
-	connFactory := mqjms.ConnectionFactoryImpl{
+	connFactory := mqibm.ConnectionFactoryImpl{
 		QMName:      QM,
 		Hostname:    Host,
 		PortNumber:  Port,
