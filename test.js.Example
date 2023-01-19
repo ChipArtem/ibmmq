@@ -1,0 +1,30 @@
+import K6ibmmq from "k6/x/K6ibmq";
+import { sleep } from 'k6';
+
+const newconn = K6ibmmq.new('QMName', 'Hostname', '1414', 'Channel', 'QueueIn', 'QueueOut');
+newconn.setcredentials('login', 'password')
+newconn.connect()
+
+export const options = {
+    scenarios: {
+      shared_iter_scenario: {
+        executor: 'constant-arrival-rate',
+        duration: '1s',
+        rate: 1,
+        timeUnit: '1s',
+        preAllocatedVUs: 1,
+        maxVUs: 50,
+      },
+    },
+  };
+
+export const setup = () => {
+};
+
+export default function () {
+  newconn.checkmsg();
+};
+
+export const teardown = () => {
+  newconn.close();
+};
