@@ -1,15 +1,19 @@
 import K6ibmmq from "k6/x/K6ibmq";
-import { sleep } from 'k6';
+import { Trend } from 'k6/metrics';
+import { Counter } from 'k6/metrics';
+
+const myTrend = new Trend('waiting_time');
+const myError = new Counter('fail_message');
 
 const newconn = K6ibmmq.new('QMName', 'Hostname', '1414', 'Channel', 'QueueIn', 'QueueOut');
-newconn.setcredentials('login', 'password')
+newconn.setcredentials('user', 'pass')
 newconn.connect()
 
 export const options = {
     scenarios: {
       shared_iter_scenario: {
         executor: 'constant-arrival-rate',
-        duration: '1s',
+        duration: '10s',
         rate: 1,
         timeUnit: '1s',
         preAllocatedVUs: 1,
@@ -22,7 +26,12 @@ export const setup = () => {
 };
 
 export default function () {
-  newconn.checkmsg();
+  var t = newconn.checkmsg();
+  if (t > 0) {
+    myTrend.add(t)
+  } else {
+    myError.add(1)
+  }
 };
 
 export const teardown = () => {

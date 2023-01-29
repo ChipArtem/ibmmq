@@ -1,9 +1,9 @@
 package k6ibmmq
 
 import (
-	"fmt"
 	"io"
 	"log"
+	
 	"os"
 	"strconv"
 	"time"
@@ -115,35 +115,40 @@ func (mq *MQconnect) Connect() *MQconnect {
 	return mq
 }
 
-func (mq *MQconnect) Checkmsg() error {
+func (mq *MQconnect) Checkmsg() int {
+	t1 := time.Now()
 	err := mq.producer.SendBytes(mq.qIn, request)
 	if err != nil {
 		log.Printf("Message sending error: %v", err)
-		return fmt.Errorf("Message sending error: %v", err)
+		return -1
 	}
 
 	for conter := 0; conter <= 100; conter++ {
 		answer, err := mq.consumer.ReceiveNoWait()
 		if err != nil {
 			log.Printf("Error reading message from queue: %v", err)
-			return fmt.Errorf("Error reading message from queue: %v", err)
+			return -1
 		}
 		if answer != nil {
-			if (answer.GetJMSExpiration() - answer.GetJMSTimestamp()) < 800 {
-				return fmt.Errorf("Messages take a long time to be delivered %vms.", (int64(1000) - answer.GetJMSExpiration() + answer.GetJMSTimestamp()))
-			}
+			// if (answer.GetJMSExpiration() - answer.GetJMSTimestamp()) < 800 {
+			// 	return 0, fmt.Errorf("Messages take a long time to be delivered %vms.", (int64(1000) - answer.GetJMSExpiration() + answer.GetJMSTimestamp()))
+			// }
+
 			msg := answer.(*mqjms.BytesMessageImpl)
 			b := *(msg.ReadBytes())
-			if string(b) != string(request) {
-				return fmt.Errorf("Messages are different.")
-			}
 
-			return nil
+			if string(b) != string(request) {
+				log.Printf("Messages are different.")
+				return -1
+			}
+			diff := int(time.Now().Sub(t1).Milliseconds())
+			return diff
+
 		}
 		time.Sleep(5 * time.Millisecond)
 	}
 	log.Printf("Messages are not in queue")
-	return nil
+	return -1
 }
 
 func (mq *MQconnect) Close() {
